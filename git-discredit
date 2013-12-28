@@ -6,20 +6,8 @@ var packageInfo = require('./package.json');
 
 program
   .version(packageInfo.version)
+  .usage('[<options>] [<since>..<until>]')
   .option('-d, --debug', 'Output debug information');
-
-program.on('--help', function() {
-    console.log(
-        'Usage: \n' +
-        '\n' +
-        '\tgit discredit [<options>] [<since>..<until>]\n' +
-        '\n' +
-        'Options:\n' +
-        '\n' +
-        '\t-d, --debug\n' +
-        '\t\tPrint debug information'
-    );
-});
 
 program.parse(process.argv)
 
