@@ -1,0 +1,10 @@
+{
+  "name": "git-discredit",
+  "version": "0.0.1",
+  "description": "Aggregating blame tool for Git",
+  "dependencies": {
+    "lodash": "*",
+    "commander": "*"
+  },
+  "author": "tim@atlassian.com"
+}

@@ -1,0 +1,27 @@
+#!/usr/bin/env node
+
+var _ = require('lodash');
+var program = require('commander');
+var packageInfo = require('./package.json');
+
+program
+  .version(packageInfo.version)
+  .option('-d, --debug', 'Output debug information');
+
+program.on('--help', function() {
+    console.log(
+        'Usage: \n' +
+        '\n' +
+        '\tgit discredit [<options>] [<since>..<until>]\n' +
+        '\n' +
+        'Options:\n' +
+        '\n' +
+        '\t-d, --debug\n' +
+        '\t\tPrint debug information'
+    );
+});
+
+program.parse(process.argv)
+
+var debug = program.debug ? console.log : function() {/* no-op */};
+
