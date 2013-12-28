@@ -2,6 +2,9 @@
 
 var _ = require('lodash');
 var program = require('commander');
+var spawn = require('child_process').spawn;
+var byline = require('byline');
+
 var packageInfo = require('./package.json');
 
 program
@@ -13,3 +16,29 @@ program.parse(process.argv)
 
 var debug = program.debug ? console.log : function() {/* no-op */};
 
+var rev;
+
+switch (program.args.length) {
+    case 0:
+        rev = '';
+        break;
+    case 1:
+        rev = program.args[0]
+        break;
+    default:
+        program.help(); // terminates
+}
+
+// resolve changed files
+var gitDiff = spawn('git', ['diff', '--name-only', rev]);
+var diffStream = byline(gitDiff.stdout);
+
+diffStream.on('data', function(line) {
+    debug("changed: " + line);
+});
+
+// calculate blame for files at since revision
+
+// calculate blame for files at until revision
+
+// output blame difference
