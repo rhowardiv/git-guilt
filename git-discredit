@@ -4,6 +4,7 @@ var util = require('util');
 var _ = require('lodash');
 var program = require('commander');
 var byline = require('byline');
+var S = require("string");
 
 var packageInfo = require('./package.json');
 
@@ -53,6 +54,45 @@ var blame = {
 function blameComplete() {
     debug("All blames complete!");
     debug(util.inspect(blame, {depth: 3}));
+
+    var locDeltas = [];
+    _.each(blame.until, function(newCount, author) {
+        var locDelta = newCount - (blame.since[author] || 0);
+        if (locDelta) {
+            locDeltas.push({author: author, delta: locDelta});
+        }
+    });
+    locDeltas.sort(function(a, b) {
+        if (a.delta < b.delta) {
+            return 1;
+        }
+        if (a.delta > b.delta) {
+            return -1;
+        }
+        return 0;
+    });    
+    _.each(locDeltas, function(entry) {
+        var author = S(entry.author).truncate(20).padRight(20);
+        var deltaStr;
+        var maxSymbols = 80;
+
+        if (Math.abs(entry.delta) > maxSymbols) {
+            var elipsis = "(" + entry.delta + ")";
+            deltaStr = S(entry.delta > 0 ? "+" : "-").repeat(maxSymbols - elipsis.length) + elipsis;
+        } else {
+            deltaStr = S(entry.delta > 0 ? "+" : "-").repeat(Math.abs(entry.delta));
+        }
+            
+        console.log(author + " " + deltaStr);
+    });
+}
+
+function repeatStr(str, n) {
+    var newStr = "";
+    while (--n > 0) {
+        newStr += str;
+    }
+    return newStr;
 }
 
 function tabulateBlame(blameBucket, path, rev) {
