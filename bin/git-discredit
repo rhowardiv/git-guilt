@@ -115,7 +115,7 @@ function tabulateBlame(blameBucket, path, rev) {
     var blameArgs = ['blame', '--', path];
     if (rev) blameArgs.splice(1, 0, rev);
     if (program.email) blameArgs.splice(1, 0, "-e");
-    var gitBlame = spawn('git', blameArgs);
+    var gitBlame = spawn('git', blameArgs, program.debug ? {stdio: ['pipe', 'pipe', process.stderr]} : undefined);
     var blameStream = byline(gitBlame.stdout);
 
     blameStream.on('data', function(line) {
@@ -146,7 +146,7 @@ function tabulateBlame(blameBucket, path, rev) {
 // resolve changed files
 var diffArgs = ['diff', '--name-only', since];
 if (until) diffArgs.push(until);
-var gitDiff = spawn('git', diffArgs);
+var gitDiff = spawn('git', diffArgs, {stdio: ['pipe', 'pipe', process.stderr]});
 var diffStream = byline(gitDiff.stdout);
 
 diffStream.on('data', function(line) {    
@@ -158,6 +158,9 @@ diffStream.on('data', function(line) {
 
 gitDiff.on('exit', function(code) {
     debug('git diff exited with ' + code);    
+    if (code) {
+        process.exit(code);
+    }
 });
 
 gitDiff.on('close', function() {
