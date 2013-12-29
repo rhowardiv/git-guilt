@@ -12,9 +12,9 @@ var packageInfo = require(__dirname + '/../package.json');
 
 program
   .version(packageInfo.version)
-  .usage('[<options>] <since>  <until>')
-  .option('-e, --email', 'Display author emails instead of names')
-  .option('-d, --debug', 'Output debug information');
+  .usage('[<options>] <since> <until>')
+  .option('-e, --email', 'display author emails instead of names')
+  .option('-d, --debug', 'output debug information');
 
 program.parse(process.argv)
 
@@ -171,4 +171,4 @@ gitDiff.on('close', function() {
         total: blamesNeeded - blamesRun,
         clear: true
     });
-})
+});
