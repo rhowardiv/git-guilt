@@ -13,6 +13,7 @@ var packageInfo = require(__dirname + '/../package.json');
 program
   .version(packageInfo.version)
   .usage('[<options>] <since>  <until>')
+  .option('-e, --email', 'Display author emails instead of names')
   .option('-d, --debug', 'Output debug information');
 
 program.parse(process.argv)
@@ -45,6 +46,7 @@ switch (program.args.length) {
 }
 
 var blameRx = /.* \((.*) \d{4}-\d{2}-\d{2}/;
+var blameEmailRx = /.* \(<(.*)> \d{4}-\d{2}-\d{2}/;
 
 var blamesNeeded = 0, blamesRun = 0;
 
@@ -54,7 +56,7 @@ var blame = {
 }; 
 
 function blameComplete() {
-    debug('All blames complete!');
+    debug('All blames complete');
     debug(util.inspect(blame, {depth: 3}));
 
     var locDeltas = [];
@@ -112,11 +114,12 @@ function tabulateBlame(blameBucket, path, rev) {
 
     var blameArgs = ['blame', '--', path];
     if (rev) blameArgs.splice(1, 0, rev);
+    if (program.email) blameArgs.splice(1, 0, "-e");
     var gitBlame = spawn('git', blameArgs);
     var blameStream = byline(gitBlame.stdout);
 
     blameStream.on('data', function(line) {
-        var match = blameRx.exec(line);
+        var match = (program.email ? blameEmailRx : blameRx).exec(line);
         if (match) {
             var author = match[1].trim();
             var value = blameBucket[author];
@@ -158,7 +161,7 @@ gitDiff.on('exit', function(code) {
 });
 
 gitDiff.on('close', function() {
-    progressBar = new ProgressBar('Calculating blame [:bar] :percent :etas', {
+    progressBar = new ProgressBar('Blaming [:bar] :percent :etas', {
         complete: '+', 
         incomplete: '-', 
         width: 50, 
