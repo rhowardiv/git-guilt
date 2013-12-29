@@ -1,44 +1,98 @@
 #!/usr/bin/env node
 
+var util = require('util');
 var _ = require('lodash');
 var program = require('commander');
-var spawn = require('child_process').spawn;
 var byline = require('byline');
 
 var packageInfo = require('./package.json');
 
 program
   .version(packageInfo.version)
-  .usage('[<options>] [<since>..<until>]')
+  .usage('[<options>] <since>  <until>')
   .option('-d, --debug', 'Output debug information');
 
 program.parse(process.argv)
 
 var debug = program.debug ? console.log : function() {/* no-op */};
 
-var rev;
+var _spawn = require('child_process').spawn;
+var spawn = program.debug ? function() {
+    debug("spawn:", arguments[0], arguments[1].join(' '));
+    return _spawn.apply(this, arguments);
+} : _spawn;
+
+var since, until;
 
 switch (program.args.length) {
     case 0:
-        rev = '';
+        since = 'HEAD';
+        until = '';
         break;
     case 1:
-        rev = program.args[0]
+        since = program.args[0];
+        until = '';
+        break;
+    case 2:
+        since = program.args[0];
+        until = program.args[1];
         break;
     default:
         program.help(); // terminates
 }
 
+var blameRx = /[0-9a-f]+ \((.*) \d{4}-\d{2}-\d{2}/;
+
+var blamesNeeded = 0, blamesRun = 0;
+
+var blame = {
+    since: {},
+    until: {}
+}; 
+
+function blameComplete() {
+    debug("All blames complete!");
+    debug(util.inspect(blame, {depth: 3}));
+}
+
+function tabulateBlame(blameBucket, path, rev) {
+    var blameArgs = ['blame', '--', path];
+    if (rev) blameArgs.splice(1, 0, rev);
+    var gitBlame = spawn('git', blameArgs);
+    var blameStream = byline(gitBlame.stdout);
+
+    blameStream.on('data', function(line) {
+        var match = blameRx.exec(line);
+        if (match) {
+            var author = match[1].trim();
+            var value = blameBucket[author];
+            blameBucket[author] = (value ? value : 0) + 1;
+        }
+    });
+
+    gitBlame.on('exit', function(code) {
+        debug('git blame (' + path + ' @ ' + (rev ? rev : 'working copy') + ') exited with ' + code);
+        blamesRun++; 
+        debug(blamesRun + "/" + blamesNeeded + " blames complete");
+        if (blamesRun >= blamesNeeded) {            
+            blameComplete();
+        }
+    });
+}
+
 // resolve changed files
-var gitDiff = spawn('git', ['diff', '--name-only', rev]);
+var diffArgs = ['diff', '--name-only', since];
+if (until) diffArgs.push(until);
+var gitDiff = spawn('git', diffArgs);
 var diffStream = byline(gitDiff.stdout);
 
-diffStream.on('data', function(line) {
-    debug("changed: " + line);
+diffStream.on('data', function(line) {    
+    debug('changed: ' + line);
+    blamesNeeded += 2;
+    tabulateBlame(blame.since, line, since);
+    tabulateBlame(blame.until, line, until);
 });
 
-// calculate blame for files at since revision
-
-// calculate blame for files at until revision
-
-// output blame difference
+gitDiff.on('exit', function(code) {
+    debug('git diff exited with ' + code);
+});
