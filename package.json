@@ -1,7 +1,7 @@
 {
-  "name": "git-discredit",
+  "name": "git-guilt",
   "version": "0.0.1",
-  "description": "Aggregating blame tool for Git",
+  "description": "Social blame tool for Git",
   "author": "tim@atlassian.com",
   "dependencies": {
     "lodash": "2.4.1",
@@ -12,6 +12,6 @@
     "progress": "1.1.2"
   },
   "bin": {
-    "git-discredit": "./bin/git-discredit"
+    "git-guilt": "./bin/git-guilt"
   }
 }
