@@ -78,7 +78,7 @@ function blameComplete() {
     _.each(locDeltas, function(entry) {
         var author = S(entry.author).truncate(20).padRight(20);
         var deltaStr;
-        var maxSymbols = 80;
+        var maxSymbols = 50;
         var symbol = entry.delta > 0 ? '+' : '-';
         var color = entry.delta > 0 ? 'green' : 'red';
 
