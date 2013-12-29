@@ -79,15 +79,16 @@ function blameComplete() {
         var author = S(entry.author).truncate(20).padRight(20);
         var deltaStr;
         var maxSymbols = 80;
+        var symbol = entry.delta > 0 ? '+' : '-';
+        var color = entry.delta > 0 ? 'green' : 'red';
 
         if (Math.abs(entry.delta) > maxSymbols) {
             var elipsis = '(' + entry.delta + ')';
-            deltaStr = S(entry.delta > 0 ? '+' : '-').repeat(maxSymbols - elipsis.length) + elipsis;
+            deltaStr = S(symbol).repeat(maxSymbols - elipsis.length) + elipsis;
         } else {
-            deltaStr = S(entry.delta > 0 ? '+' : '-').repeat(Math.abs(entry.delta));
+            deltaStr = S(symbol).repeat(Math.abs(entry.delta));
         }
-        
-        var color = entry.delta > 0 ? 'green' : 'red';
+                
         console.log(author + ' ' + colog.apply(deltaStr, [color]));
     });
 }
