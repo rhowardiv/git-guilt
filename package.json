@@ -2,11 +2,14 @@
   "name": "git-discredit",
   "version": "0.0.1",
   "description": "Aggregating blame tool for Git",
+  "author": "tim@atlassian.com",
   "dependencies": {
     "lodash": "2.4.1",
     "commander": "2.1.0",
     "byline": "4.1.1",
     "string": "1.7.0"
   },
-  "author": "tim@atlassian.com"
+  "bin": {
+    "git-discredit": "./bin/git-discredit"
+  }
 }

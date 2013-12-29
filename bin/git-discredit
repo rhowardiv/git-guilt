@@ -6,7 +6,7 @@ var program = require('commander');
 var byline = require('byline');
 var S = require("string");
 
-var packageInfo = require('./package.json');
+var packageInfo = require(__dirname + '/../package.json');
 
 program
   .version(packageInfo.version)
