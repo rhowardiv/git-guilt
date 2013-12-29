@@ -43,7 +43,7 @@ switch (program.args.length) {
         program.help(); // terminates
 }
 
-var blameRx = /[0-9a-f]+ \((.*) \d{4}-\d{2}-\d{2}/;
+var blameRx = /.* \((.*) \d{4}-\d{2}-\d{2}/;
 
 var blamesNeeded = 0, blamesRun = 0;
 
@@ -89,7 +89,25 @@ function blameComplete() {
     });
 }
 
+var queuedBlame = [];
+var maxConcurrentBlame = 5;
+var runningBlame = 0;
+
+function enqueueBlame(blameBucket, path, rev) {
+    queuedBlame.push({bucket: blameBucket, path: path, rev: rev});
+    checkBlameQueue();
+}
+
+function checkBlameQueue() {
+    if (queuedBlame.length > 0 && runningBlame < maxConcurrentBlame) {
+        var queued = queuedBlame.pop();
+        tabulateBlame(queued.bucket, queued.path, queued.rev);
+    }
+}
+
 function tabulateBlame(blameBucket, path, rev) {
+    runningBlame++;
+
     var blameArgs = ['blame', '--', path];
     if (rev) blameArgs.splice(1, 0, rev);
     var gitBlame = spawn('git', blameArgs);
@@ -109,12 +127,14 @@ function tabulateBlame(blameBucket, path, rev) {
     });
 
     gitBlame.on('close', function() {
-        blamesRun++; 
+        blamesRun++;
+        runningBlame--;
         debug(blamesRun + '/' + blamesNeeded + ' blames complete');
         if (blamesRun >= blamesNeeded) {            
             blameComplete();
         }
-    });
+        checkBlameQueue();        
+    });    
 }
 
 // resolve changed files
@@ -126,8 +146,8 @@ var diffStream = byline(gitDiff.stdout);
 diffStream.on('data', function(line) {    
     debug('changed: ' + line);
     blamesNeeded += 2;
-    tabulateBlame(blame.since, line, since);
-    tabulateBlame(blame.until, line, until);
+    enqueueBlame(blame.since, line, since);
+    enqueueBlame(blame.until, line, until);
 });
 
 gitDiff.on('exit', function(code) {
