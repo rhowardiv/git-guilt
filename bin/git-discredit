@@ -4,7 +4,8 @@ var util = require('util');
 var _ = require('lodash');
 var program = require('commander');
 var byline = require('byline');
-var S = require("string");
+var S = require('string');
+var colog = require('colog')
 
 var packageInfo = require(__dirname + '/../package.json');
 
@@ -19,7 +20,7 @@ var debug = program.debug ? console.log : function() {/* no-op */};
 
 var _spawn = require('child_process').spawn;
 var spawn = program.debug ? function() {
-    debug("spawn:", arguments[0], arguments[1].join(' '));
+    debug('spawn:', arguments[0], arguments[1].join(' '));
     return _spawn.apply(this, arguments);
 } : _spawn;
 
@@ -52,7 +53,7 @@ var blame = {
 }; 
 
 function blameComplete() {
-    debug("All blames complete!");
+    debug('All blames complete!');
     debug(util.inspect(blame, {depth: 3}));
 
     var locDeltas = [];
@@ -77,22 +78,15 @@ function blameComplete() {
         var maxSymbols = 80;
 
         if (Math.abs(entry.delta) > maxSymbols) {
-            var elipsis = "(" + entry.delta + ")";
-            deltaStr = S(entry.delta > 0 ? "+" : "-").repeat(maxSymbols - elipsis.length) + elipsis;
+            var elipsis = '(' + entry.delta + ')';
+            deltaStr = S(entry.delta > 0 ? '+' : '-').repeat(maxSymbols - elipsis.length) + elipsis;
         } else {
-            deltaStr = S(entry.delta > 0 ? "+" : "-").repeat(Math.abs(entry.delta));
+            deltaStr = S(entry.delta > 0 ? '+' : '-').repeat(Math.abs(entry.delta));
         }
-            
-        console.log(author + " " + deltaStr);
+        
+        var color = entry.delta > 0 ? 'green' : 'red';
+        console.log(author + ' ' + colog.apply(deltaStr, [color]));
     });
-}
-
-function repeatStr(str, n) {
-    var newStr = "";
-    while (--n > 0) {
-        newStr += str;
-    }
-    return newStr;
 }
 
 function tabulateBlame(blameBucket, path, rev) {
@@ -109,11 +103,14 @@ function tabulateBlame(blameBucket, path, rev) {
             blameBucket[author] = (value ? value : 0) + 1;
         }
     });
-
+    
     gitBlame.on('exit', function(code) {
-        debug('git blame (' + path + ' @ ' + (rev ? rev : 'working copy') + ') exited with ' + code);
+        debug('git blame (' + path + ' @ ' + (rev ? rev : 'working copy') + ') exited with ' + code);        
+    });
+
+    gitBlame.on('close', function() {
         blamesRun++; 
-        debug(blamesRun + "/" + blamesNeeded + " blames complete");
+        debug(blamesRun + '/' + blamesNeeded + ' blames complete');
         if (blamesRun >= blamesNeeded) {            
             blameComplete();
         }

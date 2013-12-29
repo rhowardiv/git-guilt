@@ -7,7 +7,8 @@
     "lodash": "2.4.1",
     "commander": "2.1.0",
     "byline": "4.1.1",
-    "string": "1.7.0"
+    "string": "1.7.0",
+    "colog": "1.0.2"
   },
   "bin": {
     "git-discredit": "./bin/git-discredit"
