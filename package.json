@@ -2,7 +2,7 @@
   "name": "git-guilt",
   "version": "0.0.1",
   "description": "Social blame tool for Git",
-  "author": "tim@atlassian.com",
+  "author": "Tim Pettersen <tim@atlassian.com> (https://bitbucket.org/tpettersen/)",
   "dependencies": {
     "lodash": "2.4.1",
     "commander": "2.1.0",
