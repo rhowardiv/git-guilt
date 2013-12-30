@@ -45,7 +45,7 @@ Find blame delta from the last commit:
 	Pierre-Etienne...    ---
 	Jason Hinch          -----------------
 
-Find blame delta over the last nine months:
+Find blame delta over the last three weeks:
 
 	$ git-guilt `git log --until="3 weeks ago" --format="%H" -n 1` HEAD
 	
