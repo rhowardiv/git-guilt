@@ -76,7 +76,7 @@ function blameComplete() {
         return 0;
     });    
     _.each(locDeltas, function(entry) {
-        var author = S(entry.author).truncate(20).padRight(20);
+        var author = S(entry.author).truncate(20).padRight(23);
         var deltaStr;
         var maxSymbols = 50;
         var symbol = entry.delta > 0 ? '+' : '-';
@@ -144,7 +144,6 @@ function tabulateBlame(blameBucket, path, rev) {
     });    
 }
 
-// resolve changed files
 var diffArgs = ['diff', '--name-only', since];
 if (until) diffArgs.push(until);
 var gitDiff = spawn('git', diffArgs, {stdio: ['pipe', 'pipe', process.stderr]});
