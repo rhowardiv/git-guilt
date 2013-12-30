@@ -26,6 +26,14 @@ To see your blame delta after each commit, you can invoke git-guilt from a post-
     #!/bin/sh    
     git guilt HEAD~1 HEAD
 
+Then you should see blame delta information after each commit, e.g.:
+
+    $ git commit -m "Flesh out README.md"
+    Tim Pettersen        ++++++++++++++++++++++++++++++++++++++++++++++(79)
+    Rebecca Willett      ----
+    [master 35f9416] Flesh out README.md
+    1 file changed, 82 insertions(+), 3 deletions(-)
+    rewrite README.md (83%)
 
 ## Examples
 
