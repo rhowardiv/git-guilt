@@ -8,10 +8,11 @@ Calculates the change in blame between two revisions.
 
     Options:
 
-      -h, --help     output usage information
-      -V, --version  output the version number
-      -e, --email    display author emails instead of names
-      -d, --debug    output debug information
+      -h, --help               output usage information
+      -V, --version            output the version number
+      -e, --email              display author emails instead of names
+      -w, --ignore-whitespace  ignore whitespace only changes when attributing blame
+      -d, --debug              output debug information
       
 ## Installation
 
