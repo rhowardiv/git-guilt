@@ -14,6 +14,7 @@ program
   .version(packageInfo.version)
   .usage('[<options>] <since> <until>')
   .option('-e, --email', 'display author emails instead of names')
+  .option('-w, --ignore-whitespace', 'ignore whitespace only changes when attributing blame')
   .option('-d, --debug', 'output debug information');
 
 program.parse(process.argv)
@@ -114,7 +115,9 @@ function tabulateBlame(blameBucket, path, rev) {
     runningBlame++;
 
     var blameArgs = ['blame', '--', path];
+
     if (rev) blameArgs.splice(1, 0, rev);
+    if (program.ignoreWhitespace) blameArgs.splice(1, 0, "-w");
     if (program.email) blameArgs.splice(1, 0, "-e");
     var gitBlame = spawn('git', blameArgs, program.debug ? {stdio: ['pipe', 'pipe', process.stderr]} : undefined);
     var blameStream = byline(gitBlame.stdout);
@@ -145,6 +148,7 @@ function tabulateBlame(blameBucket, path, rev) {
 }
 
 var diffArgs = ['diff', '--name-only', since];
+if (program.ignoreWhitespace) diffArgs.splice(1, 0, "-w");
 if (until) diffArgs.push(until);
 var gitDiff = spawn('git', diffArgs, {stdio: ['pipe', 'pipe', process.stderr]});
 var diffStream = byline(gitDiff.stdout);
