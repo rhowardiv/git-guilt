@@ -46,8 +46,8 @@ switch (program.args.length) {
         program.help(); // terminates
 }
 
-var blameRx = /.* \((.*) \d{4}-\d{2}-\d{2}/;
-var blameEmailRx = /.* \(<(.*)> \d{4}-\d{2}-\d{2}/;
+var blameRx = /^[^(]*\((.*?) \d{4}-\d{2}-\d{2}/;
+var blameEmailRx = /^[^(]*\(<(.*?)> \d{4}-\d{2}-\d{2}/;
 
 var blamesNeeded = 0, blamesRun = 0;
 
