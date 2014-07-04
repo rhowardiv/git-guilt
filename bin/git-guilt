@@ -5,7 +5,7 @@ var _ = require('lodash');
 var program = require('commander');
 var byline = require('byline');
 var S = require('string');
-var colog = require('colog')
+var colog = require('colog');
 var ProgressBar = require('progress');
 
 var packageInfo = require(__dirname + '/../package.json');
@@ -17,7 +17,7 @@ program
   .option('-w, --ignore-whitespace', 'ignore whitespace only changes when attributing blame')
   .option('-d, --debug', 'output debug information');
 
-program.parse(process.argv)
+program.parse(process.argv);
 
 var debug = program.debug ? console.log : function() {/* no-op */};
 
@@ -61,12 +61,22 @@ function blameComplete() {
     debug(util.inspect(blame, {depth: 3}));
 
     var locDeltas = [];
-    _.each(blame.until, function(newCount, author) {
-        var locDelta = newCount - (blame.since[author] || 0);
-        if (locDelta) {
-            locDeltas.push({author: author, delta: locDelta});
+
+    _.each(blame.since, function(sinceLoc, author) {
+      var untilLoc = blame.until[author] || 0;
+      var locDelta = untilLoc - sinceLoc;
+      if (locDelta) {
+        locDeltas.push({author: author, delta: untilLoc - sinceLoc});
+      }
+    });
+
+    _.each(blame.until, function(untilLoc, author) {
+        if (!blame.since[author]) {
+          // new author
+          locDeltas.push({author: author, delta: untilLoc});
         }
     });
+
     locDeltas.sort(function(a, b) {
         if (a.delta < b.delta) {
             return 1;
