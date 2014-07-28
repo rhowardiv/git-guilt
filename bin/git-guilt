@@ -138,7 +138,11 @@ function blameComplete() {
         } else {
             deltaStr = S(symbol).repeat(Math.abs(entry.delta));
         }
-        console.log(author + ' ' + colog.apply(deltaStr, [color]));
+        if (process.stdout.isTTY) {
+          console.log(author + ' ' + colog.apply(deltaStr, [color]));
+        } else {
+          console.log(author + ' ' + deltaStr);
+        }
     });
 }
 
@@ -202,7 +206,7 @@ git(diffArgs, {
         enqueueBlame(blame.until, line, until);
     },
     onClose: function() {
-        if (blamesNeeded) {
+        if (blamesNeeded && process.stdout.isTTY) {
             progressBar = new ProgressBar('Blaming [:bar] :percent :etas', {
                 complete: '+',
                 incomplete: '-',
