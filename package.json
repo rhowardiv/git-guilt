@@ -1,8 +1,20 @@
 {
   "name": "git-guilt",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Social blame tool for Git",
   "author": "Tim Pettersen <tim@atlassian.com> (https://bitbucket.org/tpettersen/)",
+  "contributors": [
+    {
+      "name": "Tim Pettersen",
+      "email": "tim@atlassian.com",
+      "url": "https://bitbucket.org/tpettersen/"
+    }, 
+    {
+      "name": "Richard Howard", 
+      "email": "rh@richardhoward.net",
+      "url": "https://github.com/rhowardiv/"
+    }    
+  ],
   "repository" : {
       "type" : "git",
       "url" : "https://bitbucket.org/tpettersen/git-guilt.git"
