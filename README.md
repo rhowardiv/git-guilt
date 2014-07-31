@@ -24,7 +24,7 @@ Calculates the change in blame between two revisions.
 
 To see your blame delta after each commit, you can invoke git-guilt from a post-commit hook. Create an executable file at ``.git/hooks/post-commit`` and add the following:
 
-    #!/bin/sh    
+    #!/bin/sh
     git guilt HEAD~1 HEAD
 
 Then you should see blame delta information after each commit, e.g.:
