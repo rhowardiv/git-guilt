@@ -33,7 +33,7 @@ if (program.at) {
     if (program.args.length === 1) {
         opts.at = program.args[0];
     } else {
-        console.error('-a and --at requires a single commit to be specified')
+        console.error('-a/--at requires a single commit to be specified');
         process.exit(1);
     }
 } else {
@@ -54,8 +54,29 @@ if (program.at) {
     }
 }
 
+if (process.stdout.isTTY) {
+    var progressBar;
+    opts.onBlameCount = function(count) {
+        progressBar = new ProgressBar('Blaming [:bar] :percent :etas', {
+            complete: '+',
+            incomplete: '-',
+            width: 50,
+            total: count,
+            clear: true
+        });
+    };
+    opts.onBlameComplete = function() {
+        progressBar.tick(1);
+    };
+}
+
 guilt(opts).then(function(guilt) {
-    _.each(guilt, function(loc, author) {
+    guilt = _.pairs(guilt);
+    guilt.sort(function(a, b) {
+        return b[1] - a[1];
+    });
+    guilt.forEach(function(entry) {
+        var author = entry[0], loc = entry[1];
         author = S(author).truncate(20).padRight(23);
         var locStr;
 
@@ -83,14 +104,3 @@ guilt(opts).then(function(guilt) {
     process.exit(1);
 });
 
-//    onClose: function() {
-//        if (blamesNeeded && process.stdout.isTTY) {
-//            progressBar = new ProgressBar('Blaming [:bar] :percent :etas', {
-//                complete: '+',
-//                incomplete: '-',
-//                width: 50,
-//                total: blamesNeeded - blamesRun,
-//                clear: true
-//            });
-//        }
-//    }

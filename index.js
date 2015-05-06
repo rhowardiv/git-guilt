@@ -6,6 +6,7 @@ var util = require('util');
 
 function git(args, opts) {
     return new RSVP.Promise(function(resolve, reject) {
+        opts.logger('spawning git ' + args.join(' '));
         var gitProc = spawn('git', args, {
             cwd: opts.cwd,
             stdio: (opts.stderr) ? ['pipe', 'pipe', process.stderr] : undefined,
@@ -19,6 +20,7 @@ function git(args, opts) {
             opts.onClose && opts.onClose();
         });
         gitProc.on('exit', function (code) {
+            opts.logger('git ' + args.join(' ') + ' exited with ' + code);
             if (code) {
                 reject('git ' + args.join(' ') + ' exited with ' + code);
             } else {
@@ -37,7 +39,8 @@ function findRepoPath(opts) {
             // otherwise find the root from the specified subdir, or the cwd
             git(["rev-parse", "--show-toplevel"], {
                 cwd: opts.repoSubdir || process.cwd(),
-                onLine: resolve
+                onLine: resolve,
+                logger: opts.logger
             }).catch(reject);
         }
     }).then(function(repoPath) {
@@ -45,7 +48,7 @@ function findRepoPath(opts) {
     });
 }
 
-function parsePaths(repoPath, gitArgs) {
+function parsePaths(repoPath, gitArgs, opts) {
     return new RSVP.Promise(function(resolve, reject) {
         var paths = [];
         git(gitArgs, {
@@ -55,7 +58,8 @@ function parsePaths(repoPath, gitArgs) {
             },
             onClose: function() {
                 resolve(paths);
-            }
+            },
+            logger: opts.logger
         })
         .catch(reject);
     });
@@ -64,14 +68,14 @@ function parsePaths(repoPath, gitArgs) {
 function lsTree(opts) {
     var gitArgs = ['ls-tree', '-r', '--name-only'];
     if (opts.at !== undefined) { gitArgs.push(opts.at); }
-    return parsePaths(opts.repoPath, gitArgs);
+    return parsePaths(opts.repoPath, gitArgs, opts);
 }
 
 function diffTree(opts) {
     var gitArgs = ['diff', '--name-only', opts.since];
     opts.ignoreWhitespace && gitArgs.splice(1, 0, '-w');
     if (opts.until !== undefined) gitArgs.push(opts.until);
-    return parsePaths(opts.repoPath, gitArgs);
+    return parsePaths(opts.repoPath, gitArgs, opts);
 }
 
 var BLAME_RX =       /^[^(]*\((.*?)\s+\d{4}-\d{2}-\d{2}/;
@@ -100,12 +104,14 @@ function blame(path, at, opts) {
                     var value = blame[author];
                     blame[author] = (value ? value : 0) + 1;
                 } else {
-                    console.log('no match: ' + line);
+                    opts.logger('Blame output did not match regex: ' + line);
                 }
             },
             onClose: function() {
+                opts.onBlameComplete();
                 resolve(blame);
-            }
+            },
+            logger: opts.logger
         }).catch(reject);
     });
 }
@@ -134,18 +140,21 @@ function blamePaths(paths, at, batchSize, opts) {
     var pathBlames = [];
     var chain = new RSVP.Promise(function(resolve) {resolve()}); // promise to start the chain - is there a better way?
     _.chunk(paths.map(function (path) {
-        return new RSVP.Promise(function(resolve, reject) {
+        return function(resolve, reject) {
             blame(path, at, opts)
                 .then(resolve)
                 .catch(function () {
                     // blame will fail if file is missing, in which case consider it zero blame
                     resolve({});
                 });
-        });
+        };
     }), batchSize).forEach(function(batch, idx) {
+        opts.logger('starting blame batch', batch, idx);
         chain = chain.then(function() {
             return new RSVP.Promise(function(resolve, reject) {
-                RSVP.all(batch).then(function (results) {
+                RSVP.all(_.map(batch, function(blame) {
+                    return new RSVP.Promise(blame);
+                })).then(function (results) {
                     opts.logger('blame batch', idx, results);
                     pathBlames = pathBlames.concat(results);
                     resolve(pathBlames);
@@ -159,20 +168,15 @@ function blamePaths(paths, at, batchSize, opts) {
     return chain;
 }
 
-//{
-//    at: "",
-//    repoPath: "",
-//    repoSubdir: "",
-//    since: "",
-//    until: "",
-//    ignoreWhitespace: "",
-//    email: ""
-//}
+var NOOP = function() {};
 
 var DEFAULT_OPTS = {
     ignoreWhitespace: true,
     email: false,
-    batchSize: 4
+    batchSize: 4,
+    logger: NOOP,
+    onBlameCount: NOOP,
+    onBlameComplete: NOOP
 };
 
 function guilt(opts) {
@@ -196,11 +200,13 @@ function guilt(opts) {
     return findRepoPath(opts).then(function() {
         if (opts.at) {
             return lsTree(opts).then(function(paths) {
+                opts.onBlameCount(paths.length);
                 return blamePaths(paths, opts.at, opts.batchSize, opts);
             });
         } else {
             return diffTree(opts)
                 .then(function(paths) {
+                    opts.onBlameCount(paths.length * 2);
                     var batchSize = Math.max(opts.batchSize / 2, 1);
                     return RSVP.all([
                         blamePaths(paths, opts.since, batchSize, opts),
