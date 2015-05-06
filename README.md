@@ -5,17 +5,18 @@ Calculates the change in blame between two commits, or the blame for the entire 
 ## Usage
 
      git-guilt [options] [<since>] [<until>]
-	 git-guilt [options] [-a|--all] <commit-ish>
+     git-guilt [options] [-a|--all] <commit-ish>
 
      Options:
 
-        -h, --help               output usage information
-        -V, --version            output the version number
-        -e, --email              display author emails instead of names
-        -w, --ignore-whitespace  ignore whitespace only changes when attributing blame
-        -d, --debug              output debug information
-        -a, --at                 display the total blame for the entire repository tree at a particular commit
-        -b, --batch-size <n>     specify the number of concurrent blame operations to run (minimum of 2, defaults to 4)
+         -h, --help               output usage information
+         -V, --version            output the version number
+         -e, --email              display author emails instead of names
+         -w, --ignore-whitespace  ignore whitespace only changes when attributing blame
+         -X, --debug              output debug information
+         -a, --at                 display the total blame for the entire repository tree at a particular commit
+         -b, --batch-size <n>     specify the number of concurrent blame operations to run (minimum of 2, defaults to 4)
+         -d, --dir <path>         force git-guilt to run in the specified directory rather than attempt to detect the repository root
       
 ## Installation
 

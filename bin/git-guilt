@@ -15,9 +15,10 @@ program
   .usage('[options] [<since>] [<until>]\n\t git-guilt [options] [-a|--all] <commit-ish>')
   .option('-e, --email', 'display author emails instead of names')
   .option('-w, --ignore-whitespace', 'ignore whitespace only changes when attributing blame')
-  .option('-d, --debug', 'output debug information')
+  .option('-X, --debug', 'output debug information')
   .option('-a, --at', 'display the total blame for the entire repository tree at a particular commit')
-  .option('-b, --batch-size <n>', 'specify the number of concurrent blame operations to run (minimum of 2, defaults to 4)', parseInt);
+  .option('-b, --batch-size <n>', 'specify the number of concurrent blame operations to run (minimum of 2, defaults to 4)', parseInt)
+  .option('-d, --dir <path>', 'force git-guilt to run in the specified directory rather than attempt to detect the repository root');
 
 program.parse(process.argv);
 
@@ -25,8 +26,10 @@ var opts = _.extend({}, program);
 
 if (opts.debug) {
     opts.logger = console.log;
-} else {
-    opts.logger = function() {/*noop*/};
+}
+
+if (opts.dir) {
+    opts.repoPath = opts.dir;
 }
 
 if (program.at) {
@@ -54,7 +57,7 @@ if (program.at) {
     }
 }
 
-if (process.stdout.isTTY) {
+if (process.stdout.isTTY && !opts.debug) {
     var progressBar;
     opts.onBlameCount = function(count) {
         progressBar = new ProgressBar('Blaming [:bar] :percent :etas', {
