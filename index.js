@@ -35,18 +35,10 @@ function findRepoPath(opts) {
             resolve(opts.repoPath);
         } else {
             // otherwise find the root from the specified subdir, or the cwd
-            var revParseTl = spawn("git", ["rev-parse", "--show-toplevel"], {
-                cwd: opts.repoSubdir || process.cwd()
-            });
-            var stream = byline(revParseTl.stdout);
-            stream.on('data', function(line) {
-                resolve(line.toString());
-            });
-            revParseTl.on('exit', function(code) {
-                if (code !== 0) {
-                    reject('git \"git rev-parse --show-toplevel\" exited with ' + code);
-                }
-            });
+            git(["rev-parse", "--show-toplevel"], {
+                cwd: opts.repoSubdir || process.cwd(),
+                onLine: resolve
+            }).catch(reject);
         }
     }).then(function(repoPath) {
         opts.repoPath = repoPath;
@@ -82,8 +74,8 @@ function diffTree(opts) {
     return parsePaths(opts.repoPath, gitArgs);
 }
 
-var BLAME_RX = /^[^(]*\((.*?) \d{4}-\d{2}-\d{2}/;
-var BLAME_EMAIL_RX = /^[^(]*\(<(.*?)> \d{4}-\d{2}-\d{2}/;
+var BLAME_RX =       /^[^(]*\((.*?)\s+\d{4}-\d{2}-\d{2}/;
+var BLAME_EMAIL_RX = /^[^(]*\(<(.*?)>\s+\d{4}-\d{2}-\d{2}/;
 
 function blame(path, at, opts) {
     return new RSVP.Promise(function(resolve, reject) {
@@ -97,7 +89,7 @@ function blame(path, at, opts) {
 
         if (at !== undefined) blameArgs.splice(1, 0, at);
         if (opts.ignoreWhitespace) blameArgs.splice(1, 0, "-w");
-        if (opts.showEmail) blameArgs.splice(1, 0, "-e");
+        if (opts.email) blameArgs.splice(1, 0, "-e");
 
         git(blameArgs, {
             cwd: opts.repoPath,
@@ -107,6 +99,8 @@ function blame(path, at, opts) {
                     var author = match[1].trim();
                     var value = blame[author];
                     blame[author] = (value ? value : 0) + 1;
+                } else {
+                    console.log('no match: ' + line);
                 }
             },
             onClose: function() {
@@ -158,15 +152,17 @@ function blamePaths(paths, at, opts) {
 //    since: "",
 //    until: "",
 //    ignoreWhitespace: "",
-//    showEmail: ""
+//    email: ""
 //}
+
+var DEFAULT_OPTS = {
+    ignoreWhitespace: true,
+    email: false
+};
 
 function guilt(opts) {
 
-    opts = _.extend({}, opts, {
-        ignoreWhitespace: true,
-        email: false
-    });
+    opts = _.extend({}, DEFAULT_OPTS, opts);
 
     if (opts.at && (opts.since || opts.until)) {
         throw 'opts.sha can\'t be used in conjunction with opts.since or opts.until';
