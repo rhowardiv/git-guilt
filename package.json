@@ -8,24 +8,25 @@
       "name": "Tim Pettersen",
       "email": "tim@atlassian.com",
       "url": "https://bitbucket.org/tpettersen/"
-    }, 
+    },
     {
-      "name": "Richard Howard", 
+      "name": "Richard Howard",
       "email": "rh@richardhoward.net",
       "url": "https://github.com/rhowardiv/"
-    }    
+    }
   ],
-  "repository" : {
-      "type" : "git",
-      "url" : "https://bitbucket.org/tpettersen/git-guilt.git"
+  "repository": {
+    "type": "git",
+    "url": "https://bitbucket.org/tpettersen/git-guilt.git"
   },
   "dependencies": {
-    "lodash": "2.4.1",
-    "commander": "2.1.0",
     "byline": "4.1.1",
-    "string": "1.7.0",
     "colog": "1.0.2",
-    "progress": "1.1.2"
+    "commander": "2.1.0",
+    "lodash": "2.4.1",
+    "progress": "1.1.2",
+    "rsvp": "^3.0.18",
+    "string": "1.7.0"
   },
   "bin": {
     "git-guilt": "./bin/git-guilt"

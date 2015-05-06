@@ -1,219 +1,91 @@
 #!/usr/bin/env node
 
-var util = require('util');
-var _ = require('lodash');
+var guilt = require('..');
 var program = require('commander');
-var byline = require('byline');
 var S = require('string');
 var colog = require('colog');
 var ProgressBar = require('progress');
+var _ = require('lodash');
+var util = require('util');
 
 var packageInfo = require(__dirname + '/../package.json');
 
 program
   .version(packageInfo.version)
-  .usage('[<options>] <since> <until>')
+  .usage('[options] [<since>] [<until>]\n\t git-guilt [options] [-a|--all] <commit-ish>')
   .option('-e, --email', 'display author emails instead of names')
   .option('-w, --ignore-whitespace', 'ignore whitespace only changes when attributing blame')
-  .option('-d, --debug', 'output debug information');
+  .option('-d, --debug', 'output debug information')
+  .option('-a, --at', 'display the total blame for the tree at a single commit');
 
 program.parse(process.argv);
 
 var debug = program.debug ? console.log : function() {/* no-op */};
 
-var spawn = require('child_process').spawn;
-var repoRoot;
+var opts = _.extend({}, program);
 
-function withRepoRoot(callback) {
-    if (repoRoot) {
-        callback(repoRoot);
+if (program.at) {
+    if (program.args.length === 1) {
+        opts.at = program.args[0];
     } else {
-        var topLevel = spawn("git", ["rev-parse", "--show-toplevel"]);
-        var topLevelStream = byline(topLevel.stdout);
-        topLevelStream.on('data', function(line) {
-            if (repoRoot) {
-                debug("Unexpected extra output from \"git rev-parse --show-toplevel\":", line);
-                return;
-            }
-            repoRoot = line.toString();
-            debug("git commands will be run from: " + repoRoot);
-            callback(repoRoot);
-        });
-        topLevel.on('exit', function(code) {
-            debug('git \"git rev-parse --show-toplevel\" exited with ' + code);
-        });
+        console.error('-a and --at requires a single commit to be specified')
+        process.exit(1);
+    }
+} else {
+    switch (program.args.length)
+    {
+        case 0:
+            opts.since = 'HEAD';
+            break;
+        case 1:
+            opts.since = program.args[0];
+            break;
+        case 2:
+            opts.since = program.args[0];
+            opts.until = program.args[1];
+            break;
+        default:
+            program.help(); // terminates
     }
 }
 
-function git(args, opts) {
-    program.debug && debug('spawn: git', args.join(' '));
-    withRepoRoot(function(repoRoot) {
-        var gitProc = spawn("git", args, {
-            cwd: repoRoot,
-            stdio: (program.debug || opts.stderr) ? ['pipe', 'pipe', process.stderr] : undefined
-        });
-        var gitStream = byline(gitProc.stdout);
-        gitStream.on('data', opts.onLine);
-        gitProc.on('close', opts.onClose);
-        gitProc.on('exit', function(code) {
-            if (program.debug) {
-                debug("git " + args.join(' ') + " exited with " + code);
-            }
-            if (code && opts.propagateError) {
-                process.exit(code);
-            }
-        });
-    });
-}
+guilt(opts).then(function(guilt) {
+    _.each(guilt, function(loc, author) {
+        author = S(author).truncate(20).padRight(23);
+        var locStr;
 
-var since, until;
-
-switch (program.args.length) {
-    case 0:
-        since = 'HEAD';
-        until = '';
-        break;
-    case 1:
-        since = program.args[0];
-        until = '';
-        break;
-    case 2:
-        since = program.args[0];
-        until = program.args[1];
-        break;
-    default:
-        program.help(); // terminates
-}
-
-var blameRx = /^[^(]*\((.*?) \d{4}-\d{2}-\d{2}/;
-var blameEmailRx = /^[^(]*\(<(.*?)> \d{4}-\d{2}-\d{2}/;
-
-var blamesNeeded = 0, blamesRun = 0;
-
-var blame = {
-    since: {},
-    until: {}
-};
-
-function blameComplete() {
-    debug('All blames complete');
-    debug(util.inspect(blame, {depth: 3}));
-
-    var locDeltas = [];
-
-    _.each(blame.since, function(sinceLoc, author) {
-      var untilLoc = blame.until[author] || 0;
-      var locDelta = untilLoc - sinceLoc;
-      if (locDelta) {
-        locDeltas.push({author: author, delta: untilLoc - sinceLoc});
-      }
-    });
-
-    _.each(blame.until, function(untilLoc, author) {
-        if (!blame.since[author]) {
-          // new author
-          locDeltas.push({author: author, delta: untilLoc});
-        }
-    });
-
-    locDeltas.sort(function(a, b) {
-        if (a.delta < b.delta) {
-            return 1;
-        }
-        if (a.delta > b.delta) {
-            return -1;
-        }
-        return 0;
-    });
-    _.each(locDeltas, function(entry) {
-        var author = S(entry.author).truncate(20).padRight(23);
-        var deltaStr;
-        var maxSymbols = 50;
-        var symbol = entry.delta > 0 ? '+' : '-';
-        var color = entry.delta > 0 ? 'green' : 'red';
-
-        if (Math.abs(entry.delta) > maxSymbols) {
-            var elipsis = '(' + entry.delta + ')';
-            deltaStr = S(symbol).repeat(maxSymbols - elipsis.length) + elipsis;
+        if (program.at) {
+            locStr = loc;
         } else {
-            deltaStr = S(symbol).repeat(Math.abs(entry.delta));
+            var maxSymbols = 50;
+            var symbol = loc > 0 ? '+' : '-';
+            if (Math.abs(loc) > maxSymbols) {
+                var elipsis = '(' + loc + ')';
+                locStr = S(symbol).repeat(maxSymbols - elipsis.length) + elipsis;
+            } else {
+                locStr = S(symbol).repeat(Math.abs(loc));
+            }
         }
+
         if (process.stdout.isTTY) {
-          console.log(author + ' ' + colog.apply(deltaStr, [color]));
+            console.log(author + ' ' + colog.apply(locStr, [loc > 0 ? 'green' : 'red']));
         } else {
-          console.log(author + ' ' + deltaStr);
+            console.log(author + ' ' + locStr);
         }
     });
-}
-
-var queuedBlame = [];
-var maxConcurrentBlame = 5;
-var runningBlame = 0;
-var progressBar;
-
-function enqueueBlame(blameBucket, path, rev) {
-    queuedBlame.push({bucket: blameBucket, path: path, rev: rev});
-    checkBlameQueue();
-}
-
-function checkBlameQueue() {
-    if (queuedBlame.length > 0 && runningBlame < maxConcurrentBlame) {
-        var queued = queuedBlame.pop();
-        tabulateBlame(queued.bucket, queued.path, queued.rev);
-    }
-}
-
-function tabulateBlame(blameBucket, path, rev) {
-    runningBlame++;
-
-    var blameArgs = ['blame', '--', path];
-
-    if (rev) blameArgs.splice(1, 0, rev);
-    if (program.ignoreWhitespace) blameArgs.splice(1, 0, "-w");
-    if (program.email) blameArgs.splice(1, 0, "-e");
-    git(blameArgs, {
-        onLine: function(line) {
-            var match = (program.email ? blameEmailRx : blameRx).exec(line);
-            if (match) {
-                var author = match[1].trim();
-                var value = blameBucket[author];
-                blameBucket[author] = (value ? value : 0) + 1;
-            }
-        },
-        onClose: function() {
-            blamesRun++;
-            runningBlame--;
-            progressBar && progressBar.tick(1);
-            debug(blamesRun + '/' + blamesNeeded + ' blames complete');
-            if (blamesRun >= blamesNeeded) {
-                blameComplete();
-            }
-            checkBlameQueue();
-        }
-    });
-}
-
-var diffArgs = ['diff', '--name-only', since];
-if (program.ignoreWhitespace) diffArgs.splice(1, 0, "-w");
-if (until) diffArgs.push(until);
-git(diffArgs, {
-    stderr: true,
-    propagateError: true,
-    onLine: function(line) {
-        debug('changed: ' + line);
-        blamesNeeded += 2;
-        enqueueBlame(blame.since, line, since);
-        enqueueBlame(blame.until, line, until);
-    },
-    onClose: function() {
-        if (blamesNeeded && process.stdout.isTTY) {
-            progressBar = new ProgressBar('Blaming [:bar] :percent :etas', {
-                complete: '+',
-                incomplete: '-',
-                width: 50,
-                total: blamesNeeded - blamesRun,
-                clear: true
-            });
-        }
-    }
+}).catch(function(err) {
+    console.error(err);
+    process.exit(1);
 });
+
+//    onClose: function() {
+//        if (blamesNeeded && process.stdout.isTTY) {
+//            progressBar = new ProgressBar('Blaming [:bar] :percent :etas', {
+//                complete: '+',
+//                incomplete: '-',
+//                width: 50,
+//                total: blamesNeeded - blamesRun,
+//                clear: true
+//            });
+//        }
+//    }
