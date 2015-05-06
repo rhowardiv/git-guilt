@@ -1,18 +1,21 @@
 # git-guilt
 
-Calculates the change in blame between two revisions.
+Calculates the change in blame between two commits, or the blame for the entire repository tree at a particular commit.
 
 ## Usage
 
-    git-guilt [<options>] <since> <until>
+     git-guilt [options] [<since>] [<until>]
+	 git-guilt [options] [-a|--all] <commit-ish>
 
-    Options:
+     Options:
 
-      -h, --help               output usage information
-      -V, --version            output the version number
-      -e, --email              display author emails instead of names
-      -w, --ignore-whitespace  ignore whitespace only changes when attributing blame
-      -d, --debug              output debug information
+        -h, --help               output usage information
+        -V, --version            output the version number
+        -e, --email              display author emails instead of names
+        -w, --ignore-whitespace  ignore whitespace only changes when attributing blame
+        -d, --debug              output debug information
+        -a, --at                 display the total blame for the entire repository tree at a particular commit
+        -b, --batch-size <n>     specify the number of concurrent blame operations to run (minimum of 2, defaults to 4)
       
 ## Installation
 
@@ -86,6 +89,9 @@ Find blame delta for a topic branch:
 	Seb Ruiz             ----------
 	Adam Ahmed           ---------------------------------------------(-98)
 
+Find blame for the entire repository tree on master:
+	
+    $ git guilt -a HEAD
 
-	
-	
+    Tim Pettersen           456
+    Richard Howard          3

@@ -16,7 +16,7 @@ program
   .option('-e, --email', 'display author emails instead of names')
   .option('-w, --ignore-whitespace', 'ignore whitespace only changes when attributing blame')
   .option('-d, --debug', 'output debug information')
-  .option('-a, --at', 'display the total blame for the tree at a single commit')
+  .option('-a, --at', 'display the total blame for the entire repository tree at a particular commit')
   .option('-b, --batch-size <n>', 'specify the number of concurrent blame operations to run (minimum of 2, defaults to 4)', parseInt);
 
 program.parse(process.argv);
