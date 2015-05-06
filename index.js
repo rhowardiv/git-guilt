@@ -119,7 +119,7 @@ function mergeBlames(blames) {
 }
 
 function deltaBlame(blameSince, blameUntil) {
-    return _.merge(blameSince, blameUntil, function(since, until) {
+    return _.omit(_.merge(blameSince, blameUntil, function(since, until) {
         if (since && until) {
             return until - since;
         } else if (since) {
@@ -127,22 +127,36 @@ function deltaBlame(blameSince, blameUntil) {
         } else {
             return until; // new author, all lines added
         }
-    });
+    }), function(val) { return val === 0; }); // omit zeroed out blame
 }
 
-function blamePaths(paths, at, opts) {
-    return RSVP.all(paths.map(function (path) {
+function blamePaths(paths, at, batchSize, opts) {
+    var pathBlames = [];
+    var chain = new RSVP.Promise(function(resolve) {resolve()}); // promise to start the chain - is there a better way?
+    _.chunk(paths.map(function (path) {
         return new RSVP.Promise(function(resolve, reject) {
             blame(path, at, opts)
                 .then(resolve)
                 .catch(function () {
-                    // blame will bail if file is missing, in which case consider it zero blame
+                    // blame will fail if file is missing, in which case consider it zero blame
                     resolve({});
                 });
         });
-    })).then(function(blames) {
-        return mergeBlames(blames);
+    }), batchSize).forEach(function(batch, idx) {
+        chain = chain.then(function() {
+            return new RSVP.Promise(function(resolve, reject) {
+                RSVP.all(batch).then(function (results) {
+                    opts.logger('blame batch', idx, results);
+                    pathBlames = pathBlames.concat(results);
+                    resolve(pathBlames);
+                });
+            });
+        });
     });
+    chain = chain.then(function() {
+        return mergeBlames(pathBlames);
+    });
+    return chain;
 }
 
 //{
@@ -157,7 +171,8 @@ function blamePaths(paths, at, opts) {
 
 var DEFAULT_OPTS = {
     ignoreWhitespace: true,
-    email: false
+    email: false,
+    batchSize: 4
 };
 
 function guilt(opts) {
@@ -176,17 +191,20 @@ function guilt(opts) {
         opts.at = 'HEAD';
     }
 
+    opts.batchSize = Math.max(opts.batchSize, 2);
+
     return findRepoPath(opts).then(function() {
         if (opts.at) {
             return lsTree(opts).then(function(paths) {
-                return blamePaths(paths, opts.at, opts);
+                return blamePaths(paths, opts.at, opts.batchSize, opts);
             });
         } else {
             return diffTree(opts)
                 .then(function(paths) {
+                    var batchSize = Math.max(opts.batchSize / 2, 1);
                     return RSVP.all([
-                        blamePaths(paths, opts.since, opts),
-                        blamePaths(paths, opts.until, opts)
+                        blamePaths(paths, opts.since, batchSize, opts),
+                        blamePaths(paths, opts.until, batchSize, opts)
                     ]);
                 })
                 .then(function(sinceAndUntil) {

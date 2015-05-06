@@ -16,13 +16,18 @@ program
   .option('-e, --email', 'display author emails instead of names')
   .option('-w, --ignore-whitespace', 'ignore whitespace only changes when attributing blame')
   .option('-d, --debug', 'output debug information')
-  .option('-a, --at', 'display the total blame for the tree at a single commit');
+  .option('-a, --at', 'display the total blame for the tree at a single commit')
+  .option('-b, --batch-size <n>', 'specify the number of concurrent blame operations to run (minimum of 2, defaults to 4)', parseInt);
 
 program.parse(process.argv);
 
-var debug = program.debug ? console.log : function() {/* no-op */};
-
 var opts = _.extend({}, program);
+
+if (opts.debug) {
+    opts.logger = console.log;
+} else {
+    opts.logger = function() {/*noop*/};
+}
 
 if (program.at) {
     if (program.args.length === 1) {
