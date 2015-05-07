@@ -92,7 +92,7 @@ Find blame delta for a topic branch:
 
 Find blame for the entire repository tree on master:
 	
-    $ git guilt -a HEAD
+    $ git guilt -a master
 
     Tim Pettersen           456
     Richard Howard          3
