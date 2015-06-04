@@ -2,6 +2,8 @@
 
 Calculates the change in blame between two commits, or the blame for the entire repository tree at a particular commit.
 
+`git-guilt` is also available as a [Bitbucket add-on](https://gitguilt.com/bitbucket/atlassian-connect.json).
+
 ## Usage
 
      git-guilt [options] [<since>] [<until>]
