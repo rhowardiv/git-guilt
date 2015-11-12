@@ -2,6 +2,7 @@
   "name": "git-guilt",
   "version": "0.1.1",
   "description": "Social blame tool for Git",
+  "license": "Apache-2.0",
   "author": "Tim Pettersen <tim@atlassian.com> (https://bitbucket.org/tpettersen/)",
   "contributors": [
     {
