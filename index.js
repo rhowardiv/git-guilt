@@ -2,11 +2,10 @@ var _ = require('lodash');
 var RSVP = require('rsvp');
 var spawn = require('child_process').spawn;
 var byline = require('byline');
-var util = require('util');
 
 function git(args, opts) {
     return new RSVP.Promise(function(resolve, reject) {
-        opts.logger('spawning git ' + args.join(' '));
+        opts.logger('spawning git ' + args.join(' ') + ' in ' + opts.cwd);
         var gitProc = spawn('git', args, {
             cwd: opts.cwd,
             stdio: (opts.stderr) ? ['pipe', 'pipe', process.stderr] : undefined,
