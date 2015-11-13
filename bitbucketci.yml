@@ -1,0 +1,6 @@
+pipeline:
+    - job:
+        script:
+            - nvm install 0.12
+            - npm install
+            - npm test
