@@ -1,7 +1,7 @@
 {
-  "name": "git-guilt",
+  "name": "git-guilt-staged",
   "version": "0.1.1",
-  "description": "Social blame tool for Git",
+  "description": "This fork changes `git-guilt --ignore-whitespace HEAD` to show blame diff between staged changes and HEAD. Nice for adding blame diff at end of commit msg in commit-msg hook.",
   "license": "Apache-2.0",
   "author": "Tim Pettersen <tim@atlassian.com> (https://bitbucket.org/tpettersen/)",
   "contributors": [
@@ -14,11 +14,16 @@
       "name": "Richard Howard",
       "email": "rh@richardhoward.net",
       "url": "https://github.com/rhowardiv/"
+    },
+    {
+      "name": "Devin Rhode",
+      "email": "devinrhode2@gmail.com",
+      "url": "https://github.com/devinrhode2/"
     }
   ],
   "repository": {
     "type": "git",
-    "url": "https://bitbucket.org/tpettersen/git-guilt.git"
+    "url": "https://github.com/devinrhode2/git-guilt"
   },
   "dependencies": {
     "byline": "4.1.1",
