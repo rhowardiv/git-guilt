@@ -31,7 +31,6 @@
     "commander": "2.1.0",
     "lodash": "3.8.0",
     "progress": "1.1.2",
-    "rsvp": "^3.0.18",
     "string": "1.7.0"
   },
   "devDependencies": {

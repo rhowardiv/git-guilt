@@ -1,10 +1,9 @@
 var _ = require('lodash');
-var RSVP = require('rsvp');
 var spawn = require('child_process').spawn;
 var byline = require('byline');
 
 function git(args, opts) {
-    return new RSVP.Promise(function(resolve, reject) {
+    return new Promise(function(resolve, reject) {
         opts.logger('spawning git ' + args.join(' ') + ' in ' + opts.cwd);
         var gitProc = spawn('git', args, {
             cwd: opts.cwd,
@@ -30,7 +29,7 @@ function git(args, opts) {
 }
 
 function findRepoPath(opts) {
-    return new RSVP.Promise(function(resolve, reject) {
+    return new Promise(function(resolve, reject) {
         if (opts.repoPath) {
             // if repoPath was specified, use it
             resolve(opts.repoPath);
@@ -48,7 +47,7 @@ function findRepoPath(opts) {
 }
 
 function parsePaths(repoPath, gitArgs, opts) {
-    return new RSVP.Promise(function(resolve, reject) {
+    return new Promise(function(resolve, reject) {
         var paths = [];
         git(gitArgs, {
             cwd: repoPath,
@@ -81,7 +80,7 @@ var BLAME_RX =       /^[^(]*\((.*?)\s+\d{4}-\d{2}-\d{2}/;
 var BLAME_EMAIL_RX = /^[^(]*\(<(.*?)>\s+\d{4}-\d{2}-\d{2}/;
 
 function blame(path, at, opts) {
-    return new RSVP.Promise(function(resolve, reject) {
+    return new Promise(function(resolve, reject) {
         if (opts === undefined && typeof at === 'object') {
             opts = at;
             at = undefined;
@@ -137,7 +136,7 @@ function deltaBlame(blameSince, blameUntil) {
 
 function blamePaths(paths, at, batchSize, opts) {
     var pathBlames = [];
-    var chain = new RSVP.Promise(function(resolve) {resolve()}); // promise to start the chain - is there a better way?
+    var chain = new Promise(function(resolve) {resolve()}); // promise to start the chain - is there a better way?
     _.chunk(paths.map(function (path) {
         return function(resolve, reject) {
             blame(path, at, opts)
@@ -150,9 +149,9 @@ function blamePaths(paths, at, batchSize, opts) {
     }), batchSize).forEach(function(batch, idx) {
         opts.logger('starting blame batch', batch, idx);
         chain = chain.then(function() {
-            return new RSVP.Promise(function(resolve, reject) {
-                RSVP.all(_.map(batch, function(blame) {
-                    return new RSVP.Promise(blame);
+            return new Promise(function(resolve, reject) {
+                Promise.all(_.map(batch, function(blame) {
+                    return new Promise(blame);
                 })).then(function (results) {
                     opts.logger('blame batch', idx, results);
                     pathBlames = pathBlames.concat(results);
@@ -207,7 +206,7 @@ function guilt(opts) {
                 .then(function(paths) {
                     opts.onBlameCount(paths.length * 2);
                     var batchSize = Math.max(opts.batchSize / 2, 1);
-                    return RSVP.all([
+                    return Promise.all([
                         blamePaths(paths, opts.since, batchSize, opts),
                         blamePaths(paths, opts.until, batchSize, opts)
                     ]);
