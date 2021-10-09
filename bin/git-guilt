@@ -78,7 +78,10 @@ guilt(opts).then(function(guilt) {
         return b[1] - a[1];
     });
     guilt.forEach(function(entry) {
-        var author = entry[0], loc = entry[1];
+        var author = entry[0];
+        if (author === 'Not Committed Yet') author = 'Brand new code'
+        var loc = entry[1];
+        // Guarantees we have 3 spaces on right hand side - but - this could be more dynamic
         author = S(author).truncate(20).padRight(23);
         var locStr;
 
