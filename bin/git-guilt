@@ -14,6 +14,7 @@ program
   .usage('[options] [<since>] [<until>]\n\t git-guilt [options] [-a|--all] <commit-ish>')
   .option('-e, --email', 'display author emails instead of names')
   .option('-w, --ignore-whitespace', 'ignore whitespace only changes when attributing blame')
+  .option('-tty, --force-colored-output', 'Disregard process.stdout.isTTY and colorize output anyway')
   .option('-X, --debug', 'output debug information')
   .option('-a, --at', 'display the total blame for the entire repository tree at a particular commit')
   .option('-b, --batch-size <n>', 'specify the number of concurrent blame operations to run (minimum of 2, defaults to 4)', parseInt)
@@ -98,7 +99,7 @@ guilt(opts).then(function(guilt) {
             }
         }
 
-        if (process.stdout.isTTY) {
+        if (process.stdout.isTTY || opts.forceColoredOutput) {
             console.log(author + ' ' + colog.apply(locStr, [loc > 0 ? 'green' : 'red']));
         } else {
             console.log(author + ' ' + locStr);
