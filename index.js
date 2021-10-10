@@ -70,7 +70,13 @@ function lsTree(opts) {
 }
 
 function diffTree(opts) {
-    var gitArgs = ['diff', '--staged', '--name-only', opts.since];
+    var gitArgs = ['diff']
+    if (opts.args.length === 1 && opts.args[0] === 'HEAD' && opts.since === 'HEAD') {
+        gitArgs.push('--staged')
+    }
+    gitArgs.push('--name-only');
+    gitArgs.push(opts.since)
+
     opts.ignoreWhitespace && gitArgs.splice(1, 0, '-w');
     if (opts.until !== undefined) gitArgs.push(opts.until);
     return parsePaths(opts.repoPath, gitArgs, opts);
