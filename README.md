@@ -22,9 +22,20 @@ Calculates the change in blame between two commits, or the blame for the entire 
       
 ## Installation
 
-- Install [Git](http://git-scm.com/), [Node.js](http://nodejs.org/) (tested against v0.10.3) and [npm](https://npmjs.org/)
-- Run ``npm install -g git-guilt``. You may need ``sudo``.
-- Run ``git-guilt HEAD~1 HEAD`` in any git repository to see the blame delta for the last commit.
+- Install [Git](http://git-scm.com/), [Node.js](http://nodejs.org/) (tested against v12.18.2/14.17.0/14.18.0) and [npm](https://npmjs.org/) (6/7)
+- Run `yarn add git-guilt-staged --dev`. (Or `npm install --save-dev`)
+
+### Add "Suggested reviewers: ..." to each commit message:
+
+Your `.husky/commit-msg` should look like:
+
+```sh
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+"$(git-root)/node_modules/.bin/git-guilt-commit-msg-hook" "$1"
+```
+NOTE: assumes you are using husky 7. Upgrading to husky v7 is super easy in my experience.
 
 ### post-commit hook
 

@@ -40,8 +40,13 @@
     "temp": "^0.8.3"
   },
   "bin": {
-    "git-guilt": "./bin/git-guilt"
+    "git-guilt": "./bin/git-guilt",
+    "git-guilt-commit-msg-hook": "./bin/git-guilt-commit-msg-hook"
   },
+  "files": [
+    "bin/*",
+    "index.js"
+  ],
   "scripts": {
     "test": "mocha test/index.test.js"
   }

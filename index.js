@@ -1,6 +1,12 @@
+
+try {
 var _ = require('lodash');
 var spawn = require('child_process').spawn;
 var byline = require('byline');
+} catch (e) {
+    console.log(e)
+    throw new Error('try using `npm link` for local development')
+}
 
 function git(args, opts) {
     return new Promise(function(resolve, reject) {
