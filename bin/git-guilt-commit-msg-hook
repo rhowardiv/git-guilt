@@ -7,22 +7,9 @@
 # (Of course, first: git clone, npm install)
 # Then, make edits to any source code in either project, and re-run this command.
 
-BLAME_DIFF_COLORED=$(node "$(git-root)/node_modules/.bin/git-guilt" --ignore-whitespace --force-colored-output HEAD)
+CURRENT_COMMIT_MSG=$(cat $1)
+
+BLAME_DIFF_COLORED=node "$(git-root)/node_modules/.bin/git-guilt" --ignore-whitespace false --commit-message-path "$1" --current-commit-message "$CURRENT_COMMIT_MSG" HEAD
+
 # Assumption is that this can only be helpful:
 echo "Suggested reviewers for this change:\n$BLAME_DIFF_COLORED"
-
-# REMOVE COLORS/ansi codes:
-#   There's probably be simpler way to do this: https://stackoverflow.com/questions/17998978/removing-colors-from-output?answertab=active#tab-top
-SC="\\[39m"
-#   This^ is the Stop color code Devin get's on macOS catalina/node 14/zsh/iTerm 2.
-#   May be different on windows, different shells, etc
-#   $(tput sgr0) does not work here - git-guilt doesn't use that resulting ANSI code
-#   Ideally $(tput sgr0), or some other mostly cross-platform thing worked.
-RED=$(tput setaf 1)
-GREEN=$(tput setaf 2)
-
-NO_RED=$(echo "${BLAME_DIFF_COLORED//$RED/}")
-NO_COLORS=$(echo "${NO_RED//$GREEN/}")
-BLAME_DIFF_PLAIN=$(echo "${NO_COLORS//$SC/}")
-
-echo "\nSuggested reviewers:\n$BLAME_DIFF_PLAIN" >> $1
