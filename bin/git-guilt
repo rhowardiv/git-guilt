@@ -123,8 +123,10 @@ guilt(opts).then(function(guilt) {
         var prefix = '\n\nSuggested reviewers:\n';
         var msg = opts.currentCommitMessage
         if (msg.includes(prefix)) {
-            msg.indexOf(prefix)
-            msg = msg.substring(0, 8)
+            msg = msg.substring(
+                0,
+                msg.indexOf(prefix)
+            )
         }
         msg += prefix
         msg += uncoloredLogLines
