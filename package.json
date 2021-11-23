@@ -1,6 +1,6 @@
 {
   "name": "git-guilt-staged",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "This fork changes `git-guilt --ignore-whitespace HEAD` to show blame diff between staged changes and HEAD. Nice for adding blame diff at end of commit msg in commit-msg hook.",
   "license": "Apache-2.0",
   "author": "Tim Pettersen <tim@atlassian.com> (https://bitbucket.org/tpettersen/)",
