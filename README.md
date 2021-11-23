@@ -33,7 +33,7 @@ Your `.husky/commit-msg` should look like:
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-"$(git-root)/node_modules/.bin/git-guilt-commit-msg-hook" "$1"
+"$(git rev-parse --show-toplevel)/node_modules/.bin/git-guilt-commit-msg-hook" "$1"
 ```
 NOTE: assumes you are using husky 7. Upgrading to husky v7 is super easy in my experience.
 

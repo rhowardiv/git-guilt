@@ -6,6 +6,7 @@ var S = require('string');
 var colog = require('colog');
 var ProgressBar = require('progress');
 var util = require('util');
+var fs = require('fs');
 
 var packageInfo = require(__dirname + '/../package.json');
 
@@ -15,18 +16,17 @@ program
   .option('-e, --email', 'display author emails instead of names')
   .option('-w, --ignore-whitespace', 'ignore whitespace only changes when attributing blame')
   .option('-tty, --force-colored-output', 'Disregard process.stdout.isTTY and colorize output anyway')
-  .option('-cmp, --commit-message-path', 'Implies that you want the commit message to have "Suggested reviewers:" added to it.')
+  .option('-cmp, --commit-message-path <path>', 'Implies that you want the commit message to have "Suggested reviewers:" added to it.')
+  .option('-ccm, --current-commit-message <message>', 'current commit message')
+  .option('-head, --since-head', 'use HEAD for `since`')
   .option('-X, --debug', 'output debug information')
   .option('-a, --at', 'display the total blame for the entire repository tree at a particular commit')
   .option('-b, --batch-size <n>', 'specify the number of concurrent blame operations to run (minimum of 2, defaults to 4)', parseInt)
   .option('-d, --dir <path>', 'force git-guilt to run in the specified directory rather than attempt to detect the repository root');
 
-// turn all options (even unknown --foo-bar-baz) into camel case (opts.fooBarBaz)
 program.parse(process.argv);
 
 var opts = { ...program };
-
-console.log('git-guilt opts', opts)
 
 if (opts.debug) {
     opts.logger = console.log;
@@ -44,20 +44,24 @@ if (program.at) {
         process.exit(1);
     }
 } else {
-    switch (program.args.length)
-    {
-        case 0:
-            opts.since = 'HEAD';
-            break;
-        case 1:
-            opts.since = program.args[0];
-            break;
-        case 2:
-            opts.since = program.args[0];
-            opts.until = program.args[1];
-            break;
-        default:
-            program.help(); // terminates
+    if (opts.sinceHead) {
+        opts.since = 'HEAD'
+    } else {
+        switch (program.args.length)
+        {
+            case 0:
+                opts.since = 'HEAD';
+                break;
+            case 1:
+                opts.since = program.args[0];
+                break;
+            case 2:
+                opts.since = program.args[0];
+                opts.until = program.args[1];
+                break;
+            default:
+                program.help(); // terminates
+        }    
     }
 }
 
@@ -82,7 +86,8 @@ guilt(opts).then(function(guilt) {
     guilt.sort(function(a, b) {
         return b[1] - a[1];
     });
-    var logLines = ''
+    var coloredLogLines = ''
+    var uncoloredLogLines = ''
     guilt.forEach(function(entry) {
         var author = entry[0];
         if (author === 'Not Committed Yet') author = 'Brand new code'
@@ -105,24 +110,26 @@ guilt(opts).then(function(guilt) {
         }
 
         if (process.stdout.isTTY || opts.forceColoredOutput) {
-            logLines += '\n' + author + ' ' + colog.apply(locStr, [loc > 0 ? 'green' : 'red']);
+            coloredLogLines += '\n' + author + ' ' + colog.apply(locStr, [loc > 0 ? 'green' : 'red']);
+            uncoloredLogLines += '\n' + author + ' ' + locStr;
         } else {
-            logLines += '\n' + author + ' ' + locStr;
+            coloredLogLines += '\n' + author + ' ' + locStr;
+            uncoloredLogLines += '\n' + author + ' ' + locStr;
         }
     });
-    logLines = logLines.trim()
-    console.log(logLines)
+    uncoloredLogLines = uncoloredLogLines.trim()
+    console.log(coloredLogLines.trim(), '\n')
     if (opts.commitMessagePath) {
         var prefix = '\n\nSuggested reviewers:\n';
         var msg = opts.currentCommitMessage
-        if (msg.includes(commitMsgPrefix)) {
+        if (msg.includes(prefix)) {
             msg.indexOf(prefix)
             msg = msg.substring(0, 8)
         }
         msg += prefix
-        msg += logLines
+        msg += uncoloredLogLines
 
-        fs.writeFileSync(commitMessagePath, msg)
+        fs.writeFileSync(opts.commitMessagePath, msg)
     }
 }).catch(function(err) {
     console.error(err);
