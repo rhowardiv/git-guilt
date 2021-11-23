@@ -2,7 +2,7 @@
 
 # To hack on this hook, run this in your project directory:
 # ```
-# cd ../git-guilt && npm link && cd ../your-app && npm link git-guilt-staged && git add . && git commit -m "fix: asdf" && git reset --soft HEAD~1
+# cd ~/repos/git-guilt && npm unlink git-guilt-staged && npm link && cd ~/repos/my_app && npm link git-guilt-staged && git add . && git commit -m "fix: running the commit hooks\!" && git log -1 && git reset --soft HEAD~1
 # ```
 # (Of course, first: git clone, npm install)
 # Then, make edits to any source code in either project, and re-run this command.
