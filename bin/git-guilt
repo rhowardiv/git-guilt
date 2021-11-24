@@ -128,6 +128,11 @@ guilt(opts).then(function(guilt) {
                 msg.indexOf(prefix)
             )
         }
+
+        if (msg.trim() === '') {
+            console.error('commit message is empty')
+            process.exit(1)
+        }
         msg += prefix
         msg += uncoloredLogLines
 
