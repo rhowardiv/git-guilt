@@ -130,7 +130,7 @@ guilt(opts).then(function(guilt) {
         }
 
         // strip comments from git...
-        const commitMessage = msg
+        let commitMessage = msg
             .trim()
             .split('\n')
             .map((line) => {
