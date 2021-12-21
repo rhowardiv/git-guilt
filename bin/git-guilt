@@ -134,20 +134,18 @@ guilt(opts).then(function(guilt) {
             .trim()
             .split('\n')
             .map((line) => {
-                let poundIndex = line.indexOf('#')
-                if (poundIndex === -1) {
-                    poundIndex = line.length
+                // Commit messages can of course contain # sign
+                // But lines starting with # at index 0 are comments from git. (git 2.34.1, macOS Big Sir)
+                if (line.indexOf('#') === 0) {
+                    // comment from git.
+                    return false;
+                } else {
+                    // Don't touch it. Preserve newlines and indents.
+                    return line;
                 }
-                return (
-                    line
-                        // remove comments:
-                        .slice(0, poundIndex)
-                        .trim()
-                )
             })
             .filter(
-                // remove empty strings:
-                (line) => line,
+                (line) => line === false,
             )
             .join('\n')
             .trim()
