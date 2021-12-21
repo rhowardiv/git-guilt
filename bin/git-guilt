@@ -145,7 +145,7 @@ guilt(opts).then(function(guilt) {
                 }
             })
             .filter(
-                (line) => line === false,
+                (line) => line !== false,
             )
             .join('\n')
             .trim()
