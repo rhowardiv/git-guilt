@@ -129,14 +129,37 @@ guilt(opts).then(function(guilt) {
             )
         }
 
-        if (msg.trim() === '') {
-            console.error('commit message is empty')
+        // strip comments from git...
+        const commitMessage = msg
+            .trim()
+            .split('\n')
+            .map((line) => {
+                let poundIndex = line.indexOf('#')
+                if (poundIndex === -1) {
+                    poundIndex = line.length
+                }
+                return (
+                    line
+                        // remove comments:
+                        .slice(0, poundIndex)
+                        .trim()
+                )
+            })
+            .filter(
+                // remove empty strings:
+                (line) => line,
+            )
+            .join('\n')
+            .trim()
+
+        if (commitMessage === '') {
+            console.error('COMMIT MESSAGE IS EMPTY - STOPPING COMMIT')
             process.exit(1)
         }
-        msg += prefix
-        msg += uncoloredLogLines
+        commitMessage += prefix
+        commitMessage += uncoloredLogLines
 
-        fs.writeFileSync(opts.commitMessagePath, msg)
+        fs.writeFileSync(opts.commitMessagePath, commitMessage)
     }
 }).catch(function(err) {
     console.error(err);
