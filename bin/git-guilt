@@ -1,219 +1,166 @@
 #!/usr/bin/env node
 
-var util = require('util');
-var _ = require('lodash');
+var guilt = require('..');
 var program = require('commander');
-var byline = require('byline');
 var S = require('string');
 var colog = require('colog');
 var ProgressBar = require('progress');
+var util = require('util');
+var fs = require('fs');
 
 var packageInfo = require(__dirname + '/../package.json');
 
 program
   .version(packageInfo.version)
-  .usage('[<options>] <since> <until>')
+  .usage('[options] [<since>] [<until>]\n\t git-guilt [options] [-a|--all] <commit-ish>')
   .option('-e, --email', 'display author emails instead of names')
   .option('-w, --ignore-whitespace', 'ignore whitespace only changes when attributing blame')
-  .option('-d, --debug', 'output debug information');
+  .option('-tty, --force-colored-output', 'Disregard process.stdout.isTTY and colorize output anyway')
+  .option('-cmp, --commit-message-path <path>', 'Implies that you want the commit message to have "Suggested reviewers:" added to it.')
+  .option('-ccm, --current-commit-message <message>', 'current commit message')
+  .option('-head, --since-head', 'use HEAD for `since`')
+  .option('-X, --debug', 'output debug information')
+  .option('-a, --at', 'display the total blame for the entire repository tree at a particular commit')
+  .option('-b, --batch-size <n>', 'specify the number of concurrent blame operations to run (minimum of 2, defaults to 4)', parseInt)
+  .option('-d, --dir <path>', 'force git-guilt to run in the specified directory rather than attempt to detect the repository root');
 
 program.parse(process.argv);
 
-var debug = program.debug ? console.log : function() {/* no-op */};
+var opts = { ...program };
 
-var spawn = require('child_process').spawn;
-var repoRoot;
+if (opts.debug) {
+    opts.logger = console.log;
+}
 
-function withRepoRoot(callback) {
-    if (repoRoot) {
-        callback(repoRoot);
+if (opts.dir) {
+    opts.repoPath = opts.dir;
+}
+
+if (program.at) {
+    if (program.args.length === 1) {
+        opts.at = program.args[0];
     } else {
-        var topLevel = spawn("git", ["rev-parse", "--show-toplevel"]);
-        var topLevelStream = byline(topLevel.stdout);
-        topLevelStream.on('data', function(line) {
-            if (repoRoot) {
-                debug("Unexpected extra output from \"git rev-parse --show-toplevel\":", line);
-                return;
-            }
-            repoRoot = line.toString();
-            debug("git commands will be run from: " + repoRoot);
-            callback(repoRoot);
-        });
-        topLevel.on('exit', function(code) {
-            debug('git \"git rev-parse --show-toplevel\" exited with ' + code);
-        });
+        console.error('-a/--at requires a single commit to be specified');
+        process.exit(1);
+    }
+} else {
+    if (opts.sinceHead) {
+        opts.since = 'HEAD'
+    } else {
+        switch (program.args.length)
+        {
+            case 0:
+                opts.since = 'HEAD';
+                break;
+            case 1:
+                opts.since = program.args[0];
+                break;
+            case 2:
+                opts.since = program.args[0];
+                opts.until = program.args[1];
+                break;
+            default:
+                program.help(); // terminates
+        }    
     }
 }
 
-function git(args, opts) {
-    program.debug && debug('spawn: git', args.join(' '));
-    withRepoRoot(function(repoRoot) {
-        var gitProc = spawn("git", args, {
-            cwd: repoRoot,
-            stdio: (program.debug || opts.stderr) ? ['pipe', 'pipe', process.stderr] : undefined
+if (process.stdout.isTTY && !opts.debug) {
+    var progressBar;
+    opts.onBlameCount = function(count) {
+        progressBar = new ProgressBar('Blaming [:bar] :percent :etas', {
+            complete: '+',
+            incomplete: '-',
+            width: 50,
+            total: count,
+            clear: true
         });
-        var gitStream = byline(gitProc.stdout);
-        gitStream.on('data', opts.onLine);
-        gitProc.on('close', opts.onClose);
-        gitProc.on('exit', function(code) {
-            if (program.debug) {
-                debug("git " + args.join(' ') + " exited with " + code);
-            }
-            if (code && opts.propagateError) {
-                process.exit(code);
-            }
-        });
-    });
+    };
+    opts.onBlameComplete = function() {
+        progressBar.tick(1);
+    };
 }
 
-var since, until;
-
-switch (program.args.length) {
-    case 0:
-        since = 'HEAD';
-        until = '';
-        break;
-    case 1:
-        since = program.args[0];
-        until = '';
-        break;
-    case 2:
-        since = program.args[0];
-        until = program.args[1];
-        break;
-    default:
-        program.help(); // terminates
-}
-
-var blameRx = /^[^(]*\((.*?) \d{4}-\d{2}-\d{2}/;
-var blameEmailRx = /^[^(]*\(<(.*?)> \d{4}-\d{2}-\d{2}/;
-
-var blamesNeeded = 0, blamesRun = 0;
-
-var blame = {
-    since: {},
-    until: {}
-};
-
-function blameComplete() {
-    debug('All blames complete');
-    debug(util.inspect(blame, {depth: 3}));
-
-    var locDeltas = [];
-
-    _.each(blame.since, function(sinceLoc, author) {
-      var untilLoc = blame.until[author] || 0;
-      var locDelta = untilLoc - sinceLoc;
-      if (locDelta) {
-        locDeltas.push({author: author, delta: untilLoc - sinceLoc});
-      }
+guilt(opts).then(function(guilt) {
+    guilt = Object.entries(guilt);
+    guilt.sort(function(a, b) {
+        return b[1] - a[1];
     });
+    var coloredLogLines = ''
+    var uncoloredLogLines = ''
+    guilt.forEach(function(entry) {
+        var author = entry[0];
+        if (author === 'Not Committed Yet') author = 'Brand new code'
+        var loc = entry[1];
+        // Guarantees we have 3 spaces on right hand side - but - this could be more dynamic
+        author = S(author).truncate(20).padRight(23);
+        var locStr;
 
-    _.each(blame.until, function(untilLoc, author) {
-        if (!blame.since[author]) {
-          // new author
-          locDeltas.push({author: author, delta: untilLoc});
-        }
-    });
-
-    locDeltas.sort(function(a, b) {
-        if (a.delta < b.delta) {
-            return 1;
-        }
-        if (a.delta > b.delta) {
-            return -1;
-        }
-        return 0;
-    });
-    _.each(locDeltas, function(entry) {
-        var author = S(entry.author).truncate(20).padRight(23);
-        var deltaStr;
-        var maxSymbols = 50;
-        var symbol = entry.delta > 0 ? '+' : '-';
-        var color = entry.delta > 0 ? 'green' : 'red';
-
-        if (Math.abs(entry.delta) > maxSymbols) {
-            var elipsis = '(' + entry.delta + ')';
-            deltaStr = S(symbol).repeat(maxSymbols - elipsis.length) + elipsis;
+        if (program.at) {
+            locStr = loc;
         } else {
-            deltaStr = S(symbol).repeat(Math.abs(entry.delta));
+            var maxSymbols = 50;
+            var symbol = loc > 0 ? '+' : '-';
+            if (Math.abs(loc) > maxSymbols) {
+                var elipsis = '(' + loc + ')';
+                locStr = S(symbol).repeat(maxSymbols - elipsis.length) + elipsis;
+            } else {
+                locStr = S(symbol).repeat(Math.abs(loc));
+            }
         }
-        if (process.stdout.isTTY) {
-          console.log(author + ' ' + colog.apply(deltaStr, [color]));
+
+        if (process.stdout.isTTY || opts.forceColoredOutput) {
+            coloredLogLines += '\n' + author + ' ' + colog.apply(locStr, [loc > 0 ? 'green' : 'red']);
+            uncoloredLogLines += '\n' + author + ' ' + locStr;
         } else {
-          console.log(author + ' ' + deltaStr);
+            coloredLogLines += '\n' + author + ' ' + locStr;
+            uncoloredLogLines += '\n' + author + ' ' + locStr;
         }
     });
-}
-
-var queuedBlame = [];
-var maxConcurrentBlame = 5;
-var runningBlame = 0;
-var progressBar;
-
-function enqueueBlame(blameBucket, path, rev) {
-    queuedBlame.push({bucket: blameBucket, path: path, rev: rev});
-    checkBlameQueue();
-}
-
-function checkBlameQueue() {
-    if (queuedBlame.length > 0 && runningBlame < maxConcurrentBlame) {
-        var queued = queuedBlame.pop();
-        tabulateBlame(queued.bucket, queued.path, queued.rev);
-    }
-}
-
-function tabulateBlame(blameBucket, path, rev) {
-    runningBlame++;
-
-    var blameArgs = ['blame', '--', path];
-
-    if (rev) blameArgs.splice(1, 0, rev);
-    if (program.ignoreWhitespace) blameArgs.splice(1, 0, "-w");
-    if (program.email) blameArgs.splice(1, 0, "-e");
-    git(blameArgs, {
-        onLine: function(line) {
-            var match = (program.email ? blameEmailRx : blameRx).exec(line);
-            if (match) {
-                var author = match[1].trim();
-                var value = blameBucket[author];
-                blameBucket[author] = (value ? value : 0) + 1;
-            }
-        },
-        onClose: function() {
-            blamesRun++;
-            runningBlame--;
-            progressBar && progressBar.tick(1);
-            debug(blamesRun + '/' + blamesNeeded + ' blames complete');
-            if (blamesRun >= blamesNeeded) {
-                blameComplete();
-            }
-            checkBlameQueue();
+    uncoloredLogLines = uncoloredLogLines.trim()
+    console.log(coloredLogLines.trim(), '\n')
+    if (opts.commitMessagePath) {
+        var prefix = '\n\nSuggested reviewers:\n';
+        var msg = opts.currentCommitMessage
+        if (msg.includes(prefix)) {
+            msg = msg.substring(
+                0,
+                msg.indexOf(prefix)
+            )
         }
-    });
-}
 
-var diffArgs = ['diff', '--name-only', since];
-if (program.ignoreWhitespace) diffArgs.splice(1, 0, "-w");
-if (until) diffArgs.push(until);
-git(diffArgs, {
-    stderr: true,
-    propagateError: true,
-    onLine: function(line) {
-        debug('changed: ' + line);
-        blamesNeeded += 2;
-        enqueueBlame(blame.since, line, since);
-        enqueueBlame(blame.until, line, until);
-    },
-    onClose: function() {
-        if (blamesNeeded && process.stdout.isTTY) {
-            progressBar = new ProgressBar('Blaming [:bar] :percent :etas', {
-                complete: '+',
-                incomplete: '-',
-                width: 50,
-                total: blamesNeeded - blamesRun,
-                clear: true
-            });
+        // strip comments from git...
+        let commitMessage = msg
+            .trim()
+            .split('\n')
+            .map((line) => {
+                // Commit messages can of course contain # sign
+                // But lines starting with # at index 0 are comments from git. (git 2.34.1, macOS Big Sir)
+                if (line.indexOf('#') === 0) {
+                    // comment from git.
+                    return false;
+                } else {
+                    // Don't touch it. Preserve newlines and indents.
+                    return line;
+                }
+            })
+            .filter(
+                (line) => line !== false,
+            )
+            .join('\n')
+            .trim()
+
+        if (commitMessage === '') {
+            console.error('COMMIT MESSAGE IS EMPTY - STOPPING COMMIT')
+            process.exit(1)
         }
+        commitMessage += prefix
+        commitMessage += uncoloredLogLines
+
+        fs.writeFileSync(opts.commitMessagePath, commitMessage)
     }
+}).catch(function(err) {
+    console.error(err);
+    process.exit(1);
 });
+

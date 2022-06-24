@@ -1,0 +1,5 @@
+pipeline:
+    - job:
+        script:
+            - npm install
+            - npm test

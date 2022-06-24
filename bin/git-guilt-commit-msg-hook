@@ -1,0 +1,14 @@
+#!/bin/sh
+
+# To hack on this hook, run this in your project directory:
+# ```
+# cd ~/repos/git-guilt && npm unlink git-guilt-staged && npm link && cd ~/repos/my_app && npm link git-guilt-staged && git add . && git commit -m "fix: running the commit hooks\!" && git log -1 && git reset --soft HEAD~1
+# ```
+# (Of course, first: git clone, npm install)
+# Then, make edits to any source code in either project, and re-run this command.
+
+CURRENT_COMMIT_MSG=$(cat $1)
+
+# Assumption is that this can only be helpful:
+echo "\nSuggested reviewers for this change:"
+node "$(git rev-parse --show-toplevel)/node_modules/.bin/git-guilt" --commit-message-path "$1" --current-commit-message "$CURRENT_COMMIT_MSG" --since-head HEAD

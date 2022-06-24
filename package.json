@@ -1,21 +1,53 @@
 {
-  "name": "git-guilt",
-  "version": "0.0.6",
-  "description": "Social blame tool for Git",
+  "name": "git-guilt-staged",
+  "version": "0.3.1",
+  "description": "This fork changes `git-guilt --ignore-whitespace HEAD` to show blame diff between staged changes and HEAD. Nice for adding blame diff at end of commit msg in commit-msg hook.",
+  "license": "Apache-2.0",
   "author": "Tim Pettersen <tim@atlassian.com> (https://bitbucket.org/tpettersen/)",
-  "repository" : {
-      "type" : "git",
-      "url" : "https://bitbucket.org/tpettersen/git-guilt.git"
+  "contributors": [
+    {
+      "name": "Tim Pettersen",
+      "email": "tim@atlassian.com",
+      "url": "https://bitbucket.org/tpettersen/"
+    },
+    {
+      "name": "Richard Howard",
+      "email": "rh@richardhoward.net",
+      "url": "https://github.com/rhowardiv/"
+    },
+    {
+      "name": "Devin Rhode",
+      "email": "devinrhode2@gmail.com",
+      "url": "https://github.com/devinrhode2/"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/devinrhode2/git-guilt"
   },
   "dependencies": {
-    "lodash": "2.4.1",
-    "commander": "2.1.0",
-    "byline": "4.1.1",
-    "string": "1.7.0",
+    "byline": "4.2.2",
     "colog": "1.0.2",
-    "progress": "1.1.2"
+    "commander": "2.1.0",
+    "lodash": "3.8.0",
+    "progress": "1.1.2",
+    "string": "1.7.0"
+  },
+  "devDependencies": {
+    "chai": "^3.4.1",
+    "mocha": "^2.3.3",
+    "rewire": "^2.4.0",
+    "temp": "^0.8.3"
   },
   "bin": {
-    "git-guilt": "./bin/git-guilt"
+    "git-guilt": "./bin/git-guilt",
+    "git-guilt-commit-msg-hook": "./bin/git-guilt-commit-msg-hook"
+  },
+  "files": [
+    "bin/*",
+    "index.js"
+  ],
+  "scripts": {
+    "test": "mocha test/index.test.js"
   }
 }
